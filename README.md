@@ -1,1 +1,1 @@
-# nfcm
+# Nonlinear factor copula model
