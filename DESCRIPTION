@@ -1,0 +1,24 @@
+Package: nfcm
+Type: Package
+Title: Spline Based Nonlinear Factor Copula Model
+Version: 1.0
+Date: 2022-05-06
+Authors@R: c(
+    person("Samuel", "Orso", email="Samuel.Orso@unige.ch", role=c("aut","cre","cph")),
+    person("Ostap","Okhrin", role="aut"))
+Encoding: UTF-8
+Maintainer: Samuel Orso <Samuel.Orso@unige.ch>
+Depends: R (>= 4.0.0)
+Description: This package contains the code to replicate the numerical studies 
+   presented in the paper "Spline Based Nonlinear Factor Copula Model".
+License: GPL (>= 2)
+Imports:
+    ghyp,
+    Rglpk,
+    sgt,
+    slam,
+    splines2,
+    stabledist
+Suggests:
+    nloptr
+RoxygenNote: 7.1.2
