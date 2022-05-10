@@ -40,6 +40,7 @@ H <- function(u, v, copula = "normal", param = list()){
     stop(sprintf("%s is not supported"), copula)
   if(!is.list(param)) stop("'param' must be provided as a list")
   if(!all(sapply(param,is.numeric))) stop("elements of 'param' must be numeric")
+  u <- 1.0 - u #change direction
   
   # specific implementation
   # normal copula

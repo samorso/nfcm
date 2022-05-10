@@ -16,6 +16,7 @@
 #' @importFrom slam as.simple_triplet_matrix
 #' @importFrom Rglpk Rglpk_solve_LP
 #' @importFrom stats deriv
+#' @export
 lp_fit_Spline <- function(u, v, w, G=TRUE, type="b", splines_control=splines.control()){
   # u - common latent variable from unif(0,1)
   # v - unif(0,1) errors

@@ -3,6 +3,7 @@
 export(G)
 export(H)
 export(P)
+export(lp_fit_Spline)
 export(nfcm_grad_nll)
 export(nfcm_nll)
 export(splines.control)

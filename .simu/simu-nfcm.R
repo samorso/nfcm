@@ -2,6 +2,7 @@
 # Estimation of spline based nonlinear factor copula model
 #---------------------------------
 library(nfcm)
+library(nloptr)
 
 #------------------------
 # Simulation setting
@@ -15,6 +16,7 @@ d <- as.integer(Sys.getenv("D")) # number of dimension (min 2)
 # splines_control <-
 k <- length(splines_control$knots) + splines_control$degree + as.integer(splines_control$intercept)
 P <- P(type = spline_type, splines_control = splines_control)
+MC <- 1e3
 
 # inequality constraint
 hin <- function(x){
@@ -66,7 +68,11 @@ se1 <- sample.int(1e7, MC)
 se2 <- sample.int(1e7, MC)
 res <- list(
   starting_value = matrix(nrow = MC, ncol = k * k),
-  spline_coef = matrix(nrow = MC, ncol = k * k)
+  spline_coef = matrix(nrow = MC, ncol = k * k),
+  convergence = rep(NA_integer_, MC),
+  iteration = rep(NA_integer_, MC),
+  time = rep(NA_real_, MC),
+  nll = matrix(nrow = MC, ncol = 2)
 )
 
 #------------------------
@@ -93,9 +99,9 @@ for(m in na.omit(ind[id_slurm,])){
   set.seed(se2[m])
   u <- runif(n)
   v <- matrix(runif(n * d), ncol = 2)
-  w <- H(u1, v1, copula = "normal", param = list(corr = est_cor))
+  w <- H(u, v, copula = "normal", param = list(corr = est_cor))
   fit_sv <- NULL
-  try(fit_sv <- lp_fit_Spline(u = u1, v = c(v1), w = c(w1), type = spline_type, splines_control = splines_control), silent = TRUE)
+  try(fit_sv <- lp_fit_Spline(u = u, v = c(v), w = c(w), type = spline_type, splines_control = splines_control), silent = TRUE)
   if(is.null(fit_sv)) next
   res$starting_value[m,] <- fit_sv
   
@@ -104,12 +110,18 @@ for(m in na.omit(ind[id_slurm,])){
   x0[x0<0] <- 0.0
   x0[x0>1] <- 1.0
   
+  t1 <- Sys.time()
   fit <- slsqp(x0 = x0, fn = nfcm_nll, gr = nfcm_grad_nll, 
                 lower = rep(0.0, length(x0)), upper = rep(1.0, length(x0)),
-                hin = hin, hinjac = hinjac, control = list(maxeval = 20000),
+                hin = hin, hinjac = hinjac, #control = list(maxeval = 20000),
                 w1 = w1, w2 = w2, P = P, type = spline_type, splines_control = splines_control)
-  
+  t2 <- Sys.time()
+  res$time[m] <- difftime(t2, t1, units = "secs")
   res$spline_coef[m,] <- fit$par
+  res$convergence[m] <- fit$convergence
+  res$iteration[m] <- fit$iter
+  res$nll[m,1] <- nfcm_nll(x0, w1 = w1, w2 = w2, P = P, type = spline_type, splines_control = splines_control)
+  res$nll[m,2] <- nfcm_nll(c(fit$par), w1 = w1, w2 = w2, P = P, type = spline_type, splines_control = splines_control)
   
   # Save results
   save(res, file=paste0("tmp/",assumed_model,"_id_",id_slurm,".rds"))
