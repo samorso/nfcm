@@ -57,6 +57,5 @@ variable, the variable is transformed to a 2-dimensional matrix (see 'Details').
 \details{
 If one inputs a matrix of \eqn{w_{i,1},\dots,w_{i,N}, i=1,\dots,n,} data points
 throught \code{w1}, the data is internally transformed to a 
-2 columns matrix. If \eqn{n\times N} is odd, the last data point
-(\eqn{w_{n,N}}) is dropped.
+2 columns matrix. If \eqn{N} is odd, the last column is dropped.
 }

@@ -76,8 +76,7 @@ P <- function(type = "b", splines_control = splines.control()){
 #' @details 
 #' If one inputs a matrix of \eqn{w_{i,1},\dots,w_{i,N}, i=1,\dots,n,} data points
 #' throught \code{w1}, the data is internally transformed to a 
-#' 2 columns matrix. If \eqn{n\times N} is odd, the last data point
-#' (\eqn{w_{n,N}}) is dropped.
+#' 2 columns matrix. If \eqn{N} is odd, the last column is dropped.
 #' @param x vector spline coefficients (\eqn{\lambda} vectorized).
 #' @param w1 uniform(0,1) vector of observations, or \code{matrix}
 #' if \code{w2} is \code{NULL}.
@@ -111,14 +110,14 @@ nfcm_nll <- function(x,w1,w2=NULL,P=NULL,type="b",splines_control=splines.contro
   
   # rearrange observations (when 'w2' is NULL)
   if(is.null(w2)) {
-    if(ncol(w1==2)){
+    if(ncol(w1)==2){
       w2 <- w1[,2]
       w1 <- w1[,1]
     } else {
       warning("sample rearranged as a bivariate case")
-      if(length(w1) %% 2 != 0) {
-        warning("one data-point lost in conversion")
-        tmp <- matrix(c(w1)[-length(w1)], ncol = 2)
+      if(ncol(w1) %% 2 != 0) {
+        warning("one column lost in conversion")
+        tmp <- matrix(c(w1[,-ncol(w1)]), ncol = 2)
       } else {
         tmp <- matrix(c(w1), ncol = 2)
       }
@@ -167,14 +166,14 @@ nfcm_grad_nll <- function(x,w1,w2=NULL,P=NULL,type="b",splines_control=splines.c
   
   # rearrange observations (when 'w2' is NULL)
   if(is.null(w2)) {
-    if(ncol(w1==2)){
+    if(ncol(w1)==2){
       w2 <- w1[,2]
       w1 <- w1[,1]
     } else {
       warning("sample rearranged as a bivariate case")
-      if(length(w1) %% 2 != 0) {
-        warning("one data-point lost in conversion")
-        tmp <- matrix(c(w1)[-length(w1)], ncol = 2)
+      if(ncol(w1) %% 2 != 0) {
+        warning("one column lost in conversion")
+        tmp <- matrix(c(w1[,-ncol(w1)]), ncol = 2)
       } else {
         tmp <- matrix(c(w1), ncol = 2)
       }
