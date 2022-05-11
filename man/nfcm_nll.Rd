@@ -3,6 +3,8 @@
 \name{nfcm_nll}
 \alias{nfcm_nll}
 \alias{nfcm_grad_nll}
+\alias{nfcm_aic}
+\alias{nfcm_bic}
 \title{Negative log-likelihood of Spline Based Nonlinear Factor Copula Model}
 \usage{
 nfcm_nll(
@@ -15,6 +17,24 @@ nfcm_nll(
 )
 
 nfcm_grad_nll(
+  x,
+  w1,
+  w2 = NULL,
+  P = NULL,
+  type = "b",
+  splines_control = splines.control()
+)
+
+nfcm_aic(
+  x,
+  w1,
+  w2 = NULL,
+  P = NULL,
+  type = "b",
+  splines_control = splines.control()
+)
+
+nfcm_bic(
   x,
   w1,
   w2 = NULL,
@@ -44,6 +64,10 @@ computed when calling the function.}
 The negative log-likelihood divided by \eqn{n}.
 
 The gradient of the negative log-likelihood divided by \eqn{n}.
+
+Akaike information criterion
+
+Bayesian information criterion
 }
 \description{
 Compute the negative log-likelihood for a bivariate model. It is defined

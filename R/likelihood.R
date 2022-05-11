@@ -205,3 +205,21 @@ nfcm_grad_nll <- function(x,w1,w2=NULL,P=NULL,type="b",splines_control=splines.c
   
   - c(crossprod(D, B)) / n
 }
+
+#' @rdname nfcm_nll
+#' @return Akaike information criterion
+#' @export
+nfcm_aic <- function(x,w1,w2=NULL,P=NULL,type="b",splines_control=splines.control()){
+  k <- length(x)
+  if(is.null(w2)) n <- nrow(w1) else n <- length(w2)
+  nfcm_nll(x=x,w1=w1,w2=w2,P=P,type=type,splines_control=splines_control) + 2.0 * k / n
+}
+
+#' @rdname nfcm_nll
+#' @return Bayesian information criterion
+#' @export
+nfcm_bic <- function(x,w1,w2=NULL,P=NULL,type="b",splines_control=splines.control()){
+  k <- length(x)
+  if(is.null(w2)) n <- nrow(w1) else n <- length(w2)
+  nfcm_nll(x=x,w1=w1,w2=w2,P=P,type=type,splines_control=splines_control) + log(n) * k / n
+}
