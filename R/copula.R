@@ -40,7 +40,7 @@ H <- function(u, v, copula = "normal", param = list()){
     stop(sprintf("%s is not supported"), copula)
   if(!is.list(param)) stop("'param' must be provided as a list")
   if(!all(sapply(param,is.numeric))) stop("elements of 'param' must be numeric")
-  u <- 1.0 - u #change direction
+  u <- 1.0 - u # change direction (such that G is monotone increasing in both arguments)
   
   # specific implementation
   # normal copula
@@ -128,6 +128,7 @@ G <- function(u, w, copula = "normal", param = list()){
     stop(sprintf("%s is not supported"), copula)
   if(!is.list(param)) stop("'param' must be provided as a list")
   if(!all(sapply(param,is.numeric))) stop("elements of 'param' must be numeric")
+  u <- 1.0 - u # change direction (such that G is monotone increasing in both arguments)
   
   # specific implementation
   # normal copula

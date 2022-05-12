@@ -37,3 +37,9 @@ vignettes/*.pdf
 
 # R Environment Variables
 .Renviron
+
+# Old files
+.old/
+
+# configuration files
+.simu/*.sh

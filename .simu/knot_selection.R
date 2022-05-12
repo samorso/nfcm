@@ -43,6 +43,33 @@ while(bic1 < bic0){
   cat(bic1,"\n")
 }
 
-kn0
+# kn0 <- c(0.05, 0.65) after 17 steps
 
 
+# initial values
+kn0 <- seq(.05,.95,by=.05)
+splines_control$knots <- kn0
+x0 <- lp_fit_Spline(u = u, v = c(v), w = c(w), type = spline_type, splines_control = splines_control)
+aic0 <- nfcm_aic(c(x0), w1 = w[,1], w2 = w[,2], type = spline_type, splines_control = splines_control)
+aic1 <- aic0 - 1L
+ind <- NULL
+step <- 0L
+
+while(aic1 < aic0){
+  if(step>0) aic0 <- aic1
+  aic <- rep(NA_real_, length(kn0))
+  for(i in seq_along(kn0)){
+    splines_control$knots <- kn0[-i]
+    x0 <- lp_fit_Spline(u = u, v = c(v), w = c(w), type = spline_type, splines_control = splines_control)
+    aic[i] <- nfcm_aic(c(x0), w1 = w[,1], w2 = w[,2], type = spline_type, splines_control = splines_control)
+  }
+  new_ind <- which.min(aic)
+  ind <- c(ind, new_ind)
+  if(min(aic, na.rm=TRUE)>=aic0) break
+  aic1 <- aic[new_ind]
+  kn0 <- kn0[-new_ind]
+  step <- step + 1L
+  cat(aic1,"\n")
+}
+
+# kn0 <- c(0.05, 0.25, 0.65, 0.85) after 15 steps
