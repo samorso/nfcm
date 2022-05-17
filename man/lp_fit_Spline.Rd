@@ -33,7 +33,7 @@ A matrix of spline coefficients
 }
 \description{
 Estimate the spline coefficients of the tensor product spline
-by minimising
+by minimizing
 \deqn{\sum_{i=1}^N|x_i-\phi(u)^TX\psi(y_i)|,}
-under monotonicity constraint (nonnegative partial derivatives).
+under monotonicity constraint (non-negative partial derivatives).
 }

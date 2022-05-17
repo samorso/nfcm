@@ -9,7 +9,7 @@ n <- 1000 # sample size
 param <- as.list(0.5)
 names(param) <- "alpha"
 d <- 2 # number of dimension (min 2)
-splines_control <- list(degree = 3L, Boundary.knots =  c(0,1), intercept=FALSE)
+splines_control <- list(degree = 2L, Boundary.knots =  c(0,1), intercept=FALSE)
 
 # data
 set.seed(7322)
@@ -18,7 +18,7 @@ v <- matrix(runif(n * d), ncol = 2)
 w <- H(u, v, copula = assumed_model, param = param)
 
 # initial values
-kn0 <- seq(.05,.95,by=.05)
+kn0 <- seq(.1,.9,by=.1)
 splines_control$knots <- kn0
 x0 <- lp_fit_Spline(u = u, v = c(v), w = c(w), type = spline_type, splines_control = splines_control)
 bic0 <- nfcm_bic(c(x0), w1 = w[,1], w2 = w[,2], type = spline_type, splines_control = splines_control)
@@ -47,7 +47,7 @@ while(bic1 < bic0){
 
 
 # initial values
-kn0 <- seq(.05,.95,by=.05)
+kn0 <- seq(.1,.9,by=.1)
 splines_control$knots <- kn0
 x0 <- lp_fit_Spline(u = u, v = c(v), w = c(w), type = spline_type, splines_control = splines_control)
 aic0 <- nfcm_aic(c(x0), w1 = w[,1], w2 = w[,2], type = spline_type, splines_control = splines_control)

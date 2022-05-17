@@ -13,12 +13,11 @@ Description: This package contains the code to replicate the numerical studies
    presented in the paper "Spline Based Nonlinear Factor Copula Model".
 License: GPL (>= 2)
 Imports:
+    FMStable,
     ghyp,
+    nloptr,
     Rglpk,
     sgt,
     slam,
-    splines2,
-    stabledist
-Suggests:
-    nloptr
+    splines2
 RoxygenNote: 7.1.2

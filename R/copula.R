@@ -27,7 +27,8 @@
 #' @importFrom stats pnorm qnorm pt qchisq qgamma
 #' @importFrom sgt psgt
 #' @importFrom ghyp ghyp pghyp qgig
-#' @importFrom stabledist qstable
+#' @importFrom FMStable setParam qEstable
+#  @importFrom stabledist qstable
 #' @export
 H <- function(u, v, copula = "normal", param = list()){
   # general verifications
@@ -107,7 +108,9 @@ H <- function(u, v, copula = "normal", param = list()){
     if(names(param)!="alpha") stop("'param' name error")
     if(param$alpha<=1) stop("'alpha' must be greater than 1")
     gamma <- cos(pi / 2.0 / param$alpha)^param$alpha
-    return(exp(- (- log(v) / qstable(u, alpha = param$alpha, beta = 1, gamma = gamma))^(1.0 / param$alpha)))
+    obj_stb <- setParam(alpha = 1.0 / param$alpha, location = 0, logscale = log(gamma), pm = "S1")
+    return(exp(- (- log(v) / qEstable(u, obj_stb))^(1.0 / param$alpha)))
+    # return(exp(- (- log(v) / qstable(u, alpha = 1.0 / param$alpha, beta = 1, gamma = gamma))^(1.0 / param$alpha)))
   }
 }
 
@@ -196,6 +199,8 @@ G <- function(u, w, copula = "normal", param = list()){
     if(names(param)!="alpha") stop("'param' name error")
     if(param$alpha<=1) stop("'alpha' must be greater than 1")
     gamma <- cos(pi / 2.0 / param$alpha)^param$alpha
-    return(exp(-qstable(u, alpha = param$alpha, beta = 1, gamma = gamma) * (-log(w))^param$alpha))
+    obj_stb <- setParam(alpha = 1.0 / param$alpha, location = 0, logscale = log(gamma), pm = "S1")
+    return(exp(-qEstable(u, obj_stb) * (-log(w))^param$alpha))
+    # return(exp(-qstable(u, alpha = param$alpha, beta = 1, gamma = gamma) * (-log(w))^param$alpha))
   }
 }
