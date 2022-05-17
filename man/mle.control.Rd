@@ -23,6 +23,8 @@ mle.control(
 \item{ftol_rel}{relative tolerance}
 
 \item{ftol_abs}{absolute tolerance}
+
+\item{check_derivatives}{verification}
 }
 \description{
 Control for the optimization routine

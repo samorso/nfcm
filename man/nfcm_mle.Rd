@@ -31,7 +31,7 @@ computed when calling the function.}
 
 \item{splines_control}{control (see \code{\link{splines.control}}).}
 
-\item{fit_control}{control to pass to the optimization routine (see 'Details').}
+\item{mle_control}{control to pass to the optimization routine (see 'Details').}
 }
 \value{
 An object from the optimization routine (see 'Details')
@@ -42,5 +42,5 @@ positive quadrant dependent variables. If one has \eqn{N}-dimensional
 variable, the variable is transformed to a 2-dimensional matrix (see 'Details').
 }
 \seealso{
-\code{\link[nloptr]slsqp}
+\code{\link[nloptr]{slsqp}}
 }

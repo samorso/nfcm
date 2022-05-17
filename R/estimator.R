@@ -128,6 +128,7 @@ lp_fit_Spline <- function(u, v, w, G=TRUE, type="b", splines_control=splines.con
 #' @param maxeval max number of function evaluations (default is 30000)
 #' @param ftol_rel relative tolerance
 #' @param ftol_abs absolute tolerance
+#' @param check_derivatives verification
 #' @seealso \code{\link[nloptr]{nl.opts}}, \code{\link[nloptr]{slsqp}}
 #' @export
 mle.control <- function(stopval = -Inf, xtol_rel = 1e-6, maxeval = 30000,
@@ -158,10 +159,10 @@ mle.control <- function(stopval = -Inf, xtol_rel = 1e-6, maxeval = 30000,
 #' @param type specify spline basis, either \code{"b"} (default), 
 #' \code{"c"}, \code{"i"} or \code{"m"};
 #' @param splines_control control (see \code{\link{splines.control}}).
-#' @param fit_control control to pass to the optimization routine (see 'Details').
+#' @param mle_control control to pass to the optimization routine (see 'Details').
 #' @return An object from the optimization routine (see 'Details')
 #' @importFrom nloptr slsqp
-#' @seealso \code{\link[nloptr]slsqp}
+#' @seealso \code{\link[nloptr]{slsqp}}
 #' @export
 nfcm_mle <- function(x,w1,w2=NULL,P=NULL,type="b",splines_control=splines.control(),mle_control=mle.control()){
   # x         - a square matrix (not symmetric) vectorized of spline coefficients
@@ -253,7 +254,7 @@ nfcm_mle <- function(x,w1,w2=NULL,P=NULL,type="b",splines_control=splines.contro
   }
   
   # fit the MLE
-  slsqp(x = x, fn = nfcm_nll, gr = nfcm_grad_nll, 
+  slsqp(x0 = x, fn = nfcm_nll, gr = nfcm_grad_nll, 
         lower = rep(0.0, length(x)), upper = rep(1.0, length(x)),
         hin = hin, hinjac = hinjac, heq = heq, heqjac = heqjac, control = mle_control,
         w1 = w1, w2 = w2, P = P, type = type, splines_control = splines_control)
@@ -271,6 +272,7 @@ nfcm_mle <- function(x,w1,w2=NULL,P=NULL,type="b",splines_control=splines.contro
 #' \code{"c"}, \code{"i"} or \code{"m"};
 #' @param splines_control control (see \code{\link{splines.control}}).
 #' @return Vector of estimates (MAP) for \eqn{u} 
+#' @importFrom stats optimize
 #' @export
 map <- function(x,w,type="b",splines_control=splines.control()){
   # x         - a square matrix (not symmetric) vectorized of spline coefficients
@@ -293,6 +295,7 @@ map <- function(x,w,type="b",splines_control=splines.control()){
   # generate psi
   derivs <- as.integer(splines_control$derivs)
   if(derivs!=1L) splines_control$derivs <- 1L
+  n <- nrow(w)
   psi <- array(dim = c(n,k,p))
   for(i in 1:p){
     splines_control$x <- w[,i]
