@@ -134,7 +134,7 @@ for(m in na.omit(ind[id_slurm,])){
   u_hat <- map(x = c(fit_G$par), w = w0, type = spline_type, splines_control = splines_control)
   res$rmse[m,1] <- sqrt(sum((u0-u_hat)^2))
   splines_control$x <- u_hat
-  C <- do.call(paste0(spline_type,"Spline"), splines_control) %*% matrix(fit$par, ncol = k)
+  C <- do.call(paste0(spline_type,"Spline"), splines_control) %*% matrix(fit_G$par, ncol = k)
   v_hat <- apply(w0, 2, function(x, control) {
     control$x <- x
     rowSums(do.call(paste0(spline_type,"Spline"), control) * C)
