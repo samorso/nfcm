@@ -207,6 +207,7 @@ nfcm_mle <- function(x,w1,w2=NULL,P=NULL,type="b",splines_control=splines.contro
   # inequality constraint
   slsqp_env <- new.env(hash = FALSE)
   assign("control",splines_control,slsqp_env)
+  assign("type", type, slsqp_env)
   hin <- function(x){
     tol <- 1e-10
     control <- slsqp_env$control
@@ -214,7 +215,7 @@ nfcm_mle <- function(x,w1,w2=NULL,P=NULL,type="b",splines_control=splines.contro
     k <- control$df
     if(is.null(k)) k <- length(control$knots) + control$degree + as.integer(control$intercept)
     lambda <- matrix(x, nrow = k)
-    psi <- do.call(paste0(type,"Spline"), control)
+    psi <- do.call(paste0(slsqp_env$type,"Spline"), control)
     d_psi <- deriv(psi)
     c(c(tcrossprod(psi %*% lambda, d_psi)), c(tcrossprod(d_psi %*% lambda, psi))) + tol
   }
@@ -223,7 +224,7 @@ nfcm_mle <- function(x,w1,w2=NULL,P=NULL,type="b",splines_control=splines.contro
   hinjac <- function(x){
     control <- slsqp_env$control
     control$x <- xx <- c(control$knots, 1.0)
-    psi <- do.call(paste0(type,"Spline"), control)
+    psi <- do.call(paste0(slsqp_env$type,"Spline"), control)
     d_psi <- deriv(psi)
     mat <- matrix(nrow = length(xx) * length(xx) * 2, ncol = length(x))
     id <- 0L
