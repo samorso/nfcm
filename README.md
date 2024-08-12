@@ -13,5 +13,5 @@ remotes::install_github("samorso/nfcm")
 You also need the following packages:
 
 ``` r
-install.packages(c("FMStable", "ghyp"", "nloptr", "Rglpk", "sgt", "slam", "splines2"))
+install.packages(c("FMStable", "ghyp", "nloptr", "Rglpk", "sgt", "slam", "splines2"))
 ```
