@@ -1,4 +1,4 @@
-[![R-CMD-check](https://github.com/samorso/nfcm/workflows/R-CMD-check/badge.svg)](https://github.com/samorso/nfcm/actions)
+[![R-CMD-check](https://github.com/samorso/nfcm/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/samorso/nfcm/actions)
 
 # Spline Based Nonlinear Factor Copula Model
 
