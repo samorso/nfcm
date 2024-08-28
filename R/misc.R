@@ -13,6 +13,12 @@
 # }
 
 #' @title Plotting the function H or G approximated by splines
+#' @param x an object of class 'H' or 'G' (see 'nfcm_mle')
+#' @param n number of points to evaluate the function
+#' @param ... additional arguments to be passed to 'persp'
+#' @rdname plot.H.spline
+#' @importFrom graphics persp
+#' @seealso \code{\link[graphics]{persp}}
 #' @export
 plot.H.spline <- function(x, n=100, ...) {
   # x is an object of class 'H' (see 'nfcm_mle')

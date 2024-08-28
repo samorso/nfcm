@@ -9,6 +9,16 @@
 
 \method{plot}{G.spline}(x, n = 100, ...)
 }
+\arguments{
+\item{x}{an object of class 'H' or 'G' (see 'nfcm_mle')}
+
+\item{n}{number of points to evaluate the function}
+
+\item{...}{additional arguments to be passed to 'persp'}
+}
 \description{
 Plotting the function H or G approximated by splines
+}
+\seealso{
+\code{\link[graphics]{persp}}
 }
