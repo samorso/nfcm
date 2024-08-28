@@ -139,7 +139,8 @@ nfcm_nll <- function(x,w1,w2=NULL,P=NULL,type="b",splines_control=splines.contro
   b <- do.call(paste0(type,"Spline"), splines_control)
   
   # compute the negative log-likelihood
-  -mean(log(diag(tcrossprod(a %*% C, b))))
+  # -mean(log(diag(tcrossprod(a %*% C, b))))
+  -mean(log(rowSums(a %*% C * b)))
 }
 
 #' @rdname nfcm_nll

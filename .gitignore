@@ -42,4 +42,5 @@ vignettes/*.pdf
 .old/
 
 # configuration files
-.simu/*.sh
+.simu/
+.misc/

@@ -16,7 +16,7 @@
 #' \code{"c"}, \code{"i"} or \code{"m"};
 #' @param splines_control control (see \code{\link{splines.control}}).
 #' @return A matrix of spline coefficients
-#' @importFrom slam as.simple_triplet_matrix
+#' @importFrom slam as.simple_triplet_matrix simple_triplet_matrix
 #' @importFrom Rglpk Rglpk_solve_LP
 #' @importFrom stats deriv
 #' @export
@@ -25,8 +25,11 @@ lp_fit_Spline <- function(u, v, w, G=TRUE, type="b", splines_control=splines.con
   # v - unif(0,1) errors
   # w - observations from unif(0,1)
   # splines_control - list of control for Spline()
-  # Note: G(u,v) is suppose to be monotonic increasing in both arguments. 
+  # Note: G(u,v) is suppose monotonic non-decreasing in both arguments. 
   # If dim(u) < dim(v), it means that dim(u) = n and dim(v) = n * N.
+  # linear problem is of the form:
+  # min C^T\xi under constraint A\xi <= b
+  # where \xi = (vec(splines coefficients), vec(data))^T
   
   # verification
   splines_control <- do.call("splines.control",splines_control)
@@ -58,18 +61,11 @@ lp_fit_Spline <- function(u, v, w, G=TRUE, type="b", splines_control=splines.con
   if(!G) splines_control$x <- v
   psi <- do.call(paste0(type,"Spline"), splines_control)
   
-  # partial derivatives (at the knots)
-  splines_control$x <- c(splines_control$knots, 1)
-  psi0 <- do.call(paste0(type,"Spline"), splines_control)
-  d_psi0 <- deriv(psi0)
-
-  # linear problem is of the form:
-  # min C^T\xi under constraint A\xi <= b
-  
   # Constraints:
   p <- ncol(phi)
   p2 <- p * p
-  C <- c(rep(0,p2),rep(1,N)) 
+  # C <- c(rep(0,p2),rep(1,N)) 
+  C <- simple_triplet_matrix(i = p2 + seq_len(N), j = rep(1,N), v = rep(1,N), nrow = p2 + N, ncol = 1)
   pp <- matrix(rep(phi,p), nrow = N) * matrix(rep(t(psi),each=p), nrow = N, byrow=TRUE)
   
   # "regular" constrain
@@ -78,40 +74,51 @@ lp_fit_Spline <- function(u, v, w, G=TRUE, type="b", splines_control=splines.con
   if(G) b1 <- cbind(c(rbind(v,-v)))
   if(!G) b1 <- cbind(c(rbind(w,-w)))
   
-  # monotonic constrain on partial derivatives
-  partial_d_phi <- partial_d_psi <- matrix(nrow = k * k, ncol = p2)
-  ind <- 0L
-  for(i in seq_len(k)){
-    for(j in seq_len(k)){
-      ind <- ind + 1L
-      partial_d_phi[ind,] <- c(tcrossprod(d_psi0[i,],psi0[j,]))
-      partial_d_psi[ind,] <- c(tcrossprod(psi0[i,],d_psi0[j,]))
+  # specific constrain:
+  # monotonic constrain for B-splines (increasing in both direction)
+  if(type=="b"){
+    ind <- matrix(1:p2, nrow = p)
+    tmp <- matrix(0, nrow = 2 * p * (p - 1), ncol = p2)
+    it <- 0L
+    for (i in seq_len(p)) {
+      for (j in seq_len(p - 1)) {
+        it <- it + 1L
+        tmp[it, ind[i, j]] <- 1
+        tmp[it, ind[i, j + 1]] <- -1
+        tmp[it + p * (p - 1), ind[j, i]] <- 1
+        tmp[it + p * (p - 1), ind[j + 1, i]] <- -1
+      }
     }
+    A2 <- cbind(tmp,matrix(0, nrow = 2 * p * (p - 1), ncol = N))
+    b2 <- cbind(rep(0, 2 * p * (p - 1)))
   }
-  A2 <- cbind(
-    rbind(-partial_d_phi,-partial_d_psi),
-    matrix(0, nrow = 2 * k * k, ncol = N)
-  )
-  b2 <- cbind(rep(0,2 * k * k))
   
-  # equality constraint for I-splines
+  # specific constrain:
+  # equality constrain for I-splines and C-splines
   # (coefficients sum up to 1)
-  if(type=="i"){
-    A2 <- rbind(A2, c(rep(1,p2),rep(0,N)))
-    b2 <- rbind(b2, 1.0)
+  if(type=="i" || type=="c"){
+    # A2 <- rbind(A2, c(rep(1,p2),rep(0,N)))
+    # b2 <- rbind(b2, 1.0)
+    A2 <- c(rep(1,p2),rep(0,N))
+    b2 <- 1.0
   }
   
   # overall constrains
-  # every coefficient lies in (0,1) (by default they are assumed to be positive)
+  # every coefficient lies in R (by default they are assumed to be positive)
+  # additionally, they are assumed to lie in [0,1]
   bounds <- list(upper = list(ind=seq_len(p2), val = rep(1.0, p2)))
-  A <- rbind(A1,A2)
-  b <- rbind(b1,b2)
+  # if(type=="b"){ bounds <- list(upper = list(ind=seq_len(p2), val = rep(1.0, p2))) }else {
+  #   bounds <- list(lower = list(ind=seq_len(p2), val = rep(-Inf, p2)))
+  # }
+  if(type != "m" ) A <- rbind(A1,A2) else A <- A1
+  if(type != "m") b <- rbind(b1,b2) else b <- b1
   f_dir <- rep("<=",nrow(A))
-  if(type == "i") f_dir[length(f_dir)] <- "=="
+  if(type == "i" || type == "c") f_dir[length(f_dir)] <- "=="
   A <- as.simple_triplet_matrix(A)
-  C <- as.simple_triplet_matrix(C)
+  # C <- as.simple_triplet_matrix(C)
   fit_lp <- Rglpk_solve_LP(obj = C, mat = A, dir = f_dir, rhs = b, bounds = bounds)
-  matrix(fit_lp$solution[seq_len(p2)],nrow=p)
+  res <- list(fit=fit_lp, par = matrix(fit_lp$solution[seq_len(p2)],nrow=p), control=splines_control, type=type)
+  if(G) structure(res, class = "G.spline") else structure(res, class = "H.spline")
 }
 
 # --------------
@@ -204,48 +211,90 @@ nfcm_mle <- function(x,w1,w2=NULL,P=NULL,type="b",splines_control=splines.contro
     }
   }
   
-  # inequality constraint
-  slsqp_env <- new.env(hash = FALSE)
-  assign("control",splines_control,slsqp_env)
-  assign("type", type, slsqp_env)
-  hin <- function(x){
-    tol <- 1e-10
-    control <- slsqp_env$control
-    control$x <- c(control$knots, 1.0)
-    k <- control$df
-    if(is.null(k)) k <- length(control$knots) + control$degree + as.integer(control$intercept)
-    lambda <- matrix(x, nrow = k)
-    psi <- do.call(paste0(slsqp_env$type,"Spline"), control)
-    d_psi <- deriv(psi)
-    c(c(tcrossprod(psi %*% lambda, d_psi)), c(tcrossprod(d_psi %*% lambda, psi))) + tol
+  # # inequality constraint
+  # slsqp_env <- new.env(hash = FALSE)
+  # assign("control",splines_control,slsqp_env)
+  # assign("type", type, slsqp_env)
+  # hin <- function(x){
+  #   tol <- 1e-10
+  #   control <- slsqp_env$control
+  #   # TODO: verify it is sufficient to consider derivative at knots points only
+  #   control$x <- c(control$knots, 1.0)
+  #   k <- control$df
+  #   if(is.null(k)) k <- length(control$knots) + control$degree + as.integer(control$intercept)
+  #   lambda <- matrix(x, nrow = k)
+  #   psi <- do.call(paste0(slsqp_env$type,"Spline"), control)
+  #   d_psi <- deriv(psi)
+  #   -c(c(tcrossprod(psi %*% lambda, d_psi)), c(tcrossprod(d_psi %*% lambda, psi))) - tol
+  # }
+  # 
+  # # jacobian of inequality constraint
+  # # TODO: verify it is sufficient to consider derivative at knots points only
+  # hinjac <- function(x){
+  #   control <- slsqp_env$control
+  #   control$x <- xx <- c(control$knots, 1.0)
+  #   psi <- do.call(paste0(slsqp_env$type,"Spline"), control)
+  #   d_psi <- deriv(psi)
+  #   mat <- matrix(nrow = length(xx) * length(xx) * 2, ncol = length(x))
+  #   id <- 0L
+  #   for(i in seq_along(xx)){
+  #     for(j in seq_along(xx)){
+  #       id <- id + 1L
+  #       mat[id,] <- c(tcrossprod(psi[i,],d_psi[j,]))
+  #     }
+  #   }
+  #   for(i in seq_along(xx)){
+  #     for(j in seq_along(xx)){
+  #       id <- id + 1L
+  #       mat[id,] <- c(tcrossprod(d_psi[i,],psi[j,]))
+  #     }
+  #   }
+  #   -mat
+  # }
+  
+  # inequality constraint (for B-spline)
+  hin <- hinjac <- NULL
+  if(type == "b") {
+    hin <- function(x) {
+      p2 <- length(x)
+      p <- sqrt(p2)
+      ind <- matrix(seq_len(p2), nrow = p)
+      tmp <- matrix(0, nrow = 2 * p * (p - 1), ncol = p2)
+      it <- 0L
+      for (i in seq_len(p)) {
+        for (j in seq_len(p - 1)) {
+          it <- it + 1L
+          tmp[it, ind[i, j]] <- 1
+          tmp[it, ind[i, j + 1]] <- -1
+          tmp[it + p * (p - 1), ind[j, i]] <- 1
+          tmp[it + p * (p - 1), ind[j + 1, i]] <- -1
+        }
+      }
+      tmp %*% x
+    }
+    
+    hinjac <- function(x) {
+      p2 <- length(x)
+      p <- sqrt(p2)
+      ind <- matrix(seq_len(p2), nrow = p)
+      tmp <- matrix(0, nrow = 2 * p * (p - 1), ncol = p2)
+      it <- 0L
+      for (i in seq_len(p)) {
+        for (j in seq_len(p - 1)) {
+          it <- it + 1L
+          tmp[it, ind[i, j]] <- 1
+          tmp[it, ind[i, j + 1]] <- -1
+          tmp[it + p * (p - 1), ind[j, i]] <- 1
+          tmp[it + p * (p - 1), ind[j + 1, i]] <- -1
+        }
+      }
+      tmp
+    }
   }
   
-  # jacobian of inequality constraint
-  hinjac <- function(x){
-    control <- slsqp_env$control
-    control$x <- xx <- c(control$knots, 1.0)
-    psi <- do.call(paste0(slsqp_env$type,"Spline"), control)
-    d_psi <- deriv(psi)
-    mat <- matrix(nrow = length(xx) * length(xx) * 2, ncol = length(x))
-    id <- 0L
-    for(i in seq_along(xx)){
-      for(j in seq_along(xx)){
-        id <- id + 1L
-        mat[id,] <- c(tcrossprod(psi[i,],d_psi[j,]))
-      }
-    }
-    for(i in seq_along(xx)){
-      for(j in seq_along(xx)){
-        id <- id + 1L
-        mat[id,] <- c(tcrossprod(d_psi[i,],psi[j,]))
-      }
-    }
-    mat
-  }
-  
-  # equality constraint (for iSpline)
+  # equality constraint (for I-spline and C-spline)
   heq <- heqjac <- NULL
-  if(type == "i"){
+  if(type == "i" || type == "c"){
     heq <- function(x){
       sum(x) - 1.0
     }
@@ -255,10 +304,13 @@ nfcm_mle <- function(x,w1,w2=NULL,P=NULL,type="b",splines_control=splines.contro
   }
   
   # fit the MLE
-  slsqp(x0 = x, fn = nfcm_nll, gr = nfcm_grad_nll, 
-        lower = rep(0.0, length(x)), upper = rep(1.0, length(x)),
-        hin = hin, hinjac = hinjac, heq = heq, heqjac = heqjac, control = mle_control,
-        w1 = w1, w2 = w2, P = P, type = type, splines_control = splines_control)
+  fit <- slsqp(x0 = x, fn = nfcm_nll, gr = nfcm_grad_nll, 
+               lower = rep(0.0, length(x)), upper = rep(1.0, length(x)),
+               hin = hin, hinjac = hinjac, heq = heq, heqjac = heqjac, control = mle_control,
+               deprecatedBehavior = FALSE,
+               w1 = w1, w2 = w2, P = P, type = type, splines_control = splines_control)
+  res <- list(fit=fit, par = matrix(fit$par, nrow=k), control=splines_control, type=type)
+  structure(res, class = "G.spline")
 }
 
 # --------------
