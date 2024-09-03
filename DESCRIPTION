@@ -15,7 +15,7 @@ License: GPL (>= 2)
 Imports:
     FMStable,
     ghyp,
-    nloptr,
+    nloptr (>= 2.1.1),
     Rglpk,
     sgt,
     slam,
