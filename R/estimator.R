@@ -211,6 +211,9 @@ nfcm_mle <- function(x,w1,w2=NULL,P=NULL,type="b",splines_control=splines.contro
     }
   }
   
+  # compute "P" if not provided
+  if(is.null(P)) P <- P(type, splines_control)
+  
   # # inequality constraint
   # slsqp_env <- new.env(hash = FALSE)
   # assign("control",splines_control,slsqp_env)
@@ -314,9 +317,9 @@ nfcm_mle <- function(x,w1,w2=NULL,P=NULL,type="b",splines_control=splines.contro
 }
 
 # --------------
-# MAP estimator
+# Prediction of the latent variable
 # --------------
-#' @title Maximum a posteriori (MAP) estimator 
+#' @title Predict latent variable
 #' @description 
 #' Estimate the latent variable \eqn{u}.
 #' @param x vector spline coefficients (\eqn{\lambda} vectorized).
@@ -324,10 +327,11 @@ nfcm_mle <- function(x,w1,w2=NULL,P=NULL,type="b",splines_control=splines.contro
 #' @param type specify spline basis, either \code{"b"} (default), 
 #' \code{"c"}, \code{"i"} or \code{"m"};
 #' @param splines_control control (see \code{\link{splines.control}}).
-#' @return Vector of estimates (MAP) for \eqn{u} 
+#' @param method method to estimate the latent variable, either \code{"map"} (default) or \code{"blup"}.
+#' @return Vector of estimates for \eqn{u} 
 #' @importFrom stats optimize
 #' @export
-map <- function(x,w,type="b",splines_control=splines.control()){
+predict_u <- function(x,w,type="b",splines_control=splines.control(), method="map"){
   # x         - a square matrix (not symmetric) vectorized of spline coefficients
   # w         - sample 
   # type      - spline basis
@@ -341,6 +345,7 @@ map <- function(x,w,type="b",splines_control=splines.control()){
   if(!is.matrix(w)) stop("'w' must be a matrix")
   if((p<-ncol(w))<2) stop("'w' must have at least two columns")
   if(sqrt(length(x)) != k) stop("'x' has not the correct dimension")
+  if(!method %in% c("map","blup")) stop("Method not supported")
   
   # set coefficients as matrix
   x <- matrix(x, ncol = k)
@@ -359,18 +364,86 @@ map <- function(x,w,type="b",splines_control=splines.control()){
   if(derivs != 0L) warning("spline 'derivs' set to 0")
   splines_control$derivs <- 0L
   
-  # conditional distribution of u given w1, w2
-  f <- function(u,x,psi,type="b",splines_control){
-    splines_control$x <- u
-    phi <- do.call(paste0(type,"Spline"), splines_control)
-    -prod(phi %*% x %*% psi)
-  }
+  # predictions
+  u <- rep(NA_real_, n)
   
   # MAP estimator
-  u <- rep(NA_real_, n)
-  for(i in seq_len(n)){
-    u[i] <- optimize(f, interval = c(0,1), x=x, psi = psi[i,,], 
-                     type = type, splines_control = splines_control)$minimum
+  if(method == "map"){
+    # conditional distribution of u given w1, w2
+    f <- function(u,x,psi,type="b",splines_control){
+      splines_control$x <- u
+      phi <- do.call(paste0(type,"Spline"), splines_control)
+      -prod(phi %*% x %*% psi)
+    }
+    
+    for(i in seq_len(n)){
+      u[i] <- optimize(f, interval = c(0,1), x=x, psi = psi[i,,], 
+                       type = type, splines_control = splines_control)$minimum
+    }
   }
+  
+  # BLUP estimator
+  if(method == "blup"){
+    q_vec <- q_vec(type = type, splines_control = splines_control)
+    p_vec <- p_vec(type = type, splines_control = splines_control)
+    for(i in seq_len(n)) {
+      u[i] <- prod(q_vec %*% x %*% psi[i,,]) / prod(p_vec %*% x %*% psi[i,,])
+    }
+  }
+  
   u
+}
+
+
+# --------------
+# Integrals of the spline basis
+# --------------
+# Integral of \int_0^1 \phi(u)du
+p_vec <- function(type = "b", splines_control = splines.control()){
+  if(!type %in% c("b","c","i","m")) stop("Spline basis not supported")
+  # splines.control 
+  if(!is.null(splines_control$x)) splines_control$x <- NULL
+  splines_control <- do.call("splines.control",splines_control)
+  if(splines_control$derivs!=0) warning("Order of derivative is not 0") 
+  
+  # function to integrate
+  f <- function(x,type,i,control){
+    control$x <- x
+    do.call(paste0(type,"Spline"),control)[i]
+  }
+  
+  # compute p_vec
+  k <- splines_control$df
+  if(is.null(k)) k <- length(splines_control$knots) + splines_control$degree + as.integer(splines_control$intercept)
+  vec <- rep(NA_real_, k)
+  for(i in 1:k){
+    vec[i] <- integrate(Vectorize(f, vectorize.args = "x"), lower = 0, upper = 1, type = type, i = i, control = splines_control)$value
+  }
+  
+  vec
+}
+
+# Integral of \int_0^1 u\phi(u)du
+q_vec <- function(type = "b", splines_control = splines.control()){
+  if(!type %in% c("b","c","i","m")) stop("Spline basis not supported")
+  # splines.control 
+  if(!is.null(splines_control$x)) splines_control$x <- NULL
+  splines_control <- do.call("splines.control",splines_control)
+  if(splines_control$derivs!=0) warning("Order of derivative is not 0") 
+  
+  # function to integrate
+  f <- function(x,type,i,control){
+    control$x <- x
+    x * do.call(paste0(type,"Spline"),control)[i]
+  }
+  
+  # compute p_vec
+  k <- splines_control$df
+  if(is.null(k)) k <- length(splines_control$knots) + splines_control$degree + as.integer(splines_control$intercept)
+  vec <- rep(NA_real_, k)
+  for(i in 1:k){
+    vec[i] <- integrate(Vectorize(f, vectorize.args = "x"), lower = 0, upper = 1, type = type, i = i, control = splines_control)$value
+  }
+  
+  vec
 }
