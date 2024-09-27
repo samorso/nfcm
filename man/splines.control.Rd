@@ -10,7 +10,9 @@ splines.control(
   degree = 3L,
   intercept = FALSE,
   Boundary.knots = c(0, 1),
-  derivs = 0L
+  perdiodic = FALSE,
+  derivs = 0L,
+  integral = FALSE
 )
 }
 \arguments{

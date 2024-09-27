@@ -156,13 +156,8 @@ mle.control <- function(stopval = -Inf, xtol_rel = 1e-6, maxeval = 30000,
 #' Minimize the negative log-likelihood for a bivariate model. The copula models assume
 #' positive quadrant dependent variables. If one has \eqn{N}-dimensional
 #' variable, the variable is transformed to a 2-dimensional matrix (see 'Details').
-#' @param x vector of starting values for spline coefficients (\eqn{\lambda} vectorized).
-#' @param w1 uniform(0,1) vector of observations, or \code{matrix}
-#' if \code{w2} is \code{NULL}.
-#' @param w2 uniform(0,1) vector of observations, can be set to \code{NULL} (by default)
-#' if \code{w1} is a \code{matrix}.
-#' @param P the "P" matrix (see \code{\link{P}}), if \code{NULL} (by default) it is 
-#' computed when calling the function.
+#' @param lambda vector of starting values for spline coefficients (\eqn{\Lambda} vectorized).
+#' @param w uniform(0,1) \eqn{n\times N} \code{matrix} of observations.
 #' @param type specify spline basis, either \code{"b"} (default), 
 #' \code{"c"}, \code{"i"} or \code{"m"};
 #' @param splines_control control (see \code{\link{splines.control}}).
@@ -171,12 +166,10 @@ mle.control <- function(stopval = -Inf, xtol_rel = 1e-6, maxeval = 30000,
 #' @importFrom nloptr slsqp
 #' @seealso \code{\link[nloptr]{slsqp}}
 #' @export
-nfcm_mle <- function(x,w1,w2=NULL,P=NULL,type="b",splines_control=splines.control(),mle_control=mle.control()){
-  # x         - a square matrix (not symmetric) vectorized of spline coefficients
-  # w1        - sample 1 or a matrix of samples
-  # w2        - sample 2 (optional)
-  # P         - a square symmetric matrix of weights
-  # type      - spline basis
+nfcm_mle <- function(lambda, w, type="b", splines_control=splines.control(), mle_control=mle.control()){
+  # lambda            - a square matrix (not symmetric) vectorized of spline coefficients
+  # w                 - a matrix of samples
+  # type              - spline basis
   # splines_control   - splines control for spline
   # mle_control   - control for optimization routine
   splines_control <- do.call("splines.control",splines_control)
@@ -186,72 +179,14 @@ nfcm_mle <- function(x,w1,w2=NULL,P=NULL,type="b",splines_control=splines.contro
   if(!type %in% c("b","c","i","m")) stop("Spline basis not supported")
   k <- splines_control$df
   if(is.null(k)) k <- length(splines_control$knots) + splines_control$degree + as.integer(splines_control$intercept)
-  if(!is.null(w2)) if(length(w1) != length(w2)) stop("'w1' and 'w2' sizes mismatch")
-  if(is.null(w2)) if(!is.matrix(w1)) stop("'w1' is not a matrix")
-  if(!is.null(P)) if(nrow(P) != k || ncol(P) != k) stop("'P' has not the correct dimension")
-  if(sqrt(length(x)) != k) stop("'x' has not the correct dimension")
-  if(!is.null(P)) if(!identical(P,t(P))) stop("'P' is not symmetric")
-  if(any(x<0) || any(x>1)) stop("'x' must be between 0 and 1")
+  if(!type %in% c("b","c","i","m")) stop("Spline basis not supported")
+  k <- splines_control$df
+  if(is.null(k)) k <- length(splines_control$knots) + splines_control$degree + as.integer(splines_control$intercept)
+  if(!is.matrix(w)) stop("'w' is not a matrix")
+  if(sqrt(length(lambda)) != k) stop("'lambda' has not the correct dimension")
+  if(any(lambda<0) || any(lambda>1)) stop("'lambda' must be between 0 and 1")
   
-  # rearrange observations (when 'w2' is NULL)
-  if(is.null(w2)) {
-    if(ncol(w1)==2){
-      w2 <- w1[,2]
-      w1 <- w1[,1]
-    } else {
-      warning("sample rearranged as a bivariate case")
-      if(ncol(w1) %% 2 != 0) {
-        warning("one column lost in conversion")
-        tmp <- matrix(c(w1[,-ncol(w1)]), ncol = 2)
-      } else {
-        tmp <- matrix(c(w1), ncol = 2)
-      }
-      w1 <- tmp[,1]
-      w2 <- tmp[,2]
-    }
-  }
-  
-  # # inequality constraint
-  # slsqp_env <- new.env(hash = FALSE)
-  # assign("control",splines_control,slsqp_env)
-  # assign("type", type, slsqp_env)
-  # hin <- function(x){
-  #   tol <- 1e-10
-  #   control <- slsqp_env$control
-  #   # TODO: verify it is sufficient to consider derivative at knots points only
-  #   control$x <- c(control$knots, 1.0)
-  #   k <- control$df
-  #   if(is.null(k)) k <- length(control$knots) + control$degree + as.integer(control$intercept)
-  #   lambda <- matrix(x, nrow = k)
-  #   psi <- do.call(paste0(slsqp_env$type,"Spline"), control)
-  #   d_psi <- deriv(psi)
-  #   -c(c(tcrossprod(psi %*% lambda, d_psi)), c(tcrossprod(d_psi %*% lambda, psi))) - tol
-  # }
-  # 
-  # # jacobian of inequality constraint
-  # # TODO: verify it is sufficient to consider derivative at knots points only
-  # hinjac <- function(x){
-  #   control <- slsqp_env$control
-  #   control$x <- xx <- c(control$knots, 1.0)
-  #   psi <- do.call(paste0(slsqp_env$type,"Spline"), control)
-  #   d_psi <- deriv(psi)
-  #   mat <- matrix(nrow = length(xx) * length(xx) * 2, ncol = length(x))
-  #   id <- 0L
-  #   for(i in seq_along(xx)){
-  #     for(j in seq_along(xx)){
-  #       id <- id + 1L
-  #       mat[id,] <- c(tcrossprod(psi[i,],d_psi[j,]))
-  #     }
-  #   }
-  #   for(i in seq_along(xx)){
-  #     for(j in seq_along(xx)){
-  #       id <- id + 1L
-  #       mat[id,] <- c(tcrossprod(d_psi[i,],psi[j,]))
-  #     }
-  #   }
-  #   -mat
-  # }
-  
+  # inequality constraint
   # inequality constraint (for B-spline)
   hin <- hinjac <- NULL
   if(type == "b") {
@@ -304,33 +239,34 @@ nfcm_mle <- function(x,w1,w2=NULL,P=NULL,type="b",splines_control=splines.contro
   }
   
   # fit the MLE
-  fit <- slsqp(x0 = x, fn = nfcm_nll, gr = nfcm_grad_nll, 
-               lower = rep(0.0, length(x)), upper = rep(1.0, length(x)),
+  fit <- slsqp(x0 = lambda, fn = nfcm_nll, gr = nfcm_grad_nll, 
+               lower = rep(0.0, length(lambda)), upper = rep(1.0, length(lambda)),
                hin = hin, hinjac = hinjac, heq = heq, heqjac = heqjac, control = mle_control,
                deprecatedBehavior = FALSE,
-               w1 = w1, w2 = w2, P = P, type = type, splines_control = splines_control)
+               w = w, type = type, splines_control = splines_control)
   res <- list(fit=fit, par = matrix(fit$par, nrow=k), control=splines_control, type=type)
   structure(res, class = "G.spline")
 }
 
 # --------------
-# MAP estimator
+# Prediction of the latent variable
 # --------------
-#' @title Maximum a posteriori (MAP) estimator 
+#' @title Predict latent variable
 #' @description 
 #' Estimate the latent variable \eqn{u}.
-#' @param x vector spline coefficients (\eqn{\lambda} vectorized).
+#' @param lambda vector spline coefficients (\eqn{\Lambda} vectorized).
 #' @param w uniform(0,1) \code{matrix} of observations.
 #' @param type specify spline basis, either \code{"b"} (default), 
 #' \code{"c"}, \code{"i"} or \code{"m"};
 #' @param splines_control control (see \code{\link{splines.control}}).
-#' @return Vector of estimates (MAP) for \eqn{u} 
+#' @param method method to estimate the latent variable, either \code{"map"} (default) or \code{"blup"}.
+#' @return Estimates for \eqn{u}, return a vector if \code{method="map"} and a matrix if \code{method="blup"}.
 #' @importFrom stats optimize
 #' @export
-map <- function(x,w,type="b",splines_control=splines.control()){
-  # x         - a square matrix (not symmetric) vectorized of spline coefficients
-  # w         - sample 
-  # type      - spline basis
+predict_u <- function(lambda,w,type="b",splines_control=splines.control(), method="map"){
+  # lambda            - a square matrix (not symmetric) vectorized of spline coefficients
+  # w                 - a matrix of samples
+  # type              - spline basis
   # splines_control   - splines control for spline
   splines_control <- do.call("splines.control",splines_control)
   
@@ -338,39 +274,94 @@ map <- function(x,w,type="b",splines_control=splines.control()){
   if(!type %in% c("b","c","i","m")) stop("Spline basis not supported")
   k <- splines_control$df
   if(is.null(k)) k <- length(splines_control$knots) + splines_control$degree + as.integer(splines_control$intercept)
-  if(!is.matrix(w)) stop("'w' must be a matrix")
-  if((p<-ncol(w))<2) stop("'w' must have at least two columns")
-  if(sqrt(length(x)) != k) stop("'x' has not the correct dimension")
+  if(!is.matrix(w)) stop("'w' is not a matrix")
+  if(sqrt(length(lambda)) != k) stop("'lambda' has not the correct dimension")
+  if(!method %in% c("map","blup")) stop("Method not supported")
   
   # set coefficients as matrix
-  x <- matrix(x, ncol = k)
+  Lambda <- matrix(lambda, ncol = k)
 
   # generate psi
   derivs <- as.integer(splines_control$derivs)
   if(derivs!=1L) splines_control$derivs <- 1L
   n <- nrow(w)
-  psi <- array(dim = c(n,k,p))
-  for(i in 1:p){
-    splines_control$x <- w[,i]
-    psi[,,i] <- do.call(paste0(type,"Spline"), splines_control)
+  N <- ncol(w)
+  psip <- array(dim = c(n,k,N))
+  for(j in 1:N){
+    splines_control$x <- w[,j]
+    psip[,,j] <- do.call(paste0(type,"Spline"), splines_control)
   }
   
   # reset derivs to 0
-  if(derivs != 0L) warning("spline 'derivs' set to 0")
   splines_control$derivs <- 0L
   
-  # conditional distribution of u given w1, w2
-  f <- function(u,x,psi,type="b",splines_control){
-    splines_control$x <- u
-    phi <- do.call(paste0(type,"Spline"), splines_control)
-    -prod(phi %*% x %*% psi)
-  }
   
   # MAP estimator
-  u <- rep(NA_real_, n)
-  for(i in seq_len(n)){
-    u[i] <- optimize(f, interval = c(0,1), x=x, psi = psi[i,,], 
-                     type = type, splines_control = splines_control)$minimum
+  if(method == "map"){
+    # predictions
+    u <- rep(NA_real_, n)
+    
+    # conditional distribution of u given w1, w2
+    f <- function(u,Lambda,psip,type="b",splines_control){
+      splines_control$x <- u
+      phi <- do.call(paste0(type,"Spline"), splines_control)
+      -prod(phi %*% Lambda %*% psip)
+    }
+    
+    for(i in seq_len(n)){
+      u[i] <- optimize(f, interval = c(0,1), Lambda=Lambda, psip = psip[i,,], 
+                       type = type, splines_control = splines_control)$minimum
+    }
   }
+  
+  # BLUP estimator
+  if(method == "blup"){
+    # predictions
+    u <- matrix(nrow=n, ncol=2)
+    
+    # compute integrals
+    q_vec <- q_vec(type = type, splines_control = splines_control)
+    if(!isTRUE(splines_control$integral)) splines_control$integral <- TRUE
+    splines_control$x <- 1
+    Phi <- do.call(paste0(type,"Spline"), splines_control)
+    C1 <- q_vec %*% Lambda
+    C2 <- Phi %*% Lambda
+    
+    for(i in seq_len(n)) {
+      u[i,1] <- prod(C1 %*% psip[i,,]) / prod((C2 %*% psip[i,,])^(1 / N))
+      u[i,2] <- prod(C1 %*% psip[i,,])^(1/N) / prod(C2 %*% psip[i,,])
+    }
+        
+  }
+  
   u
+}
+
+
+# --------------
+# Integral of the spline basis
+# --------------
+# Approximation of the integral of \int_0^1 u\phi(u)du
+q_vec <- function(type = "b", splines_control = splines.control()){
+  if(!type %in% c("b","c","i","m")) stop("Spline basis not supported")
+  # splines.control 
+  if(!is.null(splines_control$x)) splines_control$x <- NULL
+  splines_control <- do.call("splines.control",splines_control)
+  if(splines_control$derivs!=0) warning("Order of derivative is not 0") 
+  
+  # function to integrate
+  f <- function(x,type,i,control){
+    control$x <- x
+    x * do.call(paste0(type,"Spline"),control)[i]
+  }
+  
+  # compute p_vec
+  k <- splines_control$df
+  if(is.null(k)) k <- length(splines_control$knots) + splines_control$degree + as.integer(splines_control$intercept)
+  vec <- rep(NA_real_, k)
+  for(i in 1:k){
+    vec[i] <- integrate(Vectorize(f, vectorize.args = "x"), lower = 0, upper = 1, type = type, i = i, control = splines_control)$value
+  }
+  
+  vec
 }

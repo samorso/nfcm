@@ -5,26 +5,17 @@
 \title{Maximum likelihood estimator of Spline Based Nonlinear Factor Copula Model}
 \usage{
 nfcm_mle(
-  x,
-  w1,
-  w2 = NULL,
-  P = NULL,
+  lambda,
+  w,
   type = "b",
   splines_control = splines.control(),
   mle_control = mle.control()
 )
 }
 \arguments{
-\item{x}{vector of starting values for spline coefficients (\eqn{\lambda} vectorized).}
+\item{lambda}{vector of starting values for spline coefficients (\eqn{\Lambda} vectorized).}
 
-\item{w1}{uniform(0,1) vector of observations, or \code{matrix}
-if \code{w2} is \code{NULL}.}
-
-\item{w2}{uniform(0,1) vector of observations, can be set to \code{NULL} (by default)
-if \code{w1} is a \code{matrix}.}
-
-\item{P}{the "P" matrix (see \code{\link{P}}), if \code{NULL} (by default) it is 
-computed when calling the function.}
+\item{w}{uniform(0,1) \eqn{n\times N} \code{matrix} of observations.}
 
 \item{type}{specify spline basis, either \code{"b"} (default), 
 \code{"c"}, \code{"i"} or \code{"m"};}

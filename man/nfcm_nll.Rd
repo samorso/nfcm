@@ -5,55 +5,20 @@
 \alias{nfcm_grad_nll}
 \alias{nfcm_aic}
 \alias{nfcm_bic}
-\title{Negative log-likelihood of Spline Based Nonlinear Factor Copula Model}
+\title{Negative approximate log-likelihood of Spline Based Nonlinear Factor Copula Model}
 \usage{
-nfcm_nll(
-  x,
-  w1,
-  w2 = NULL,
-  P = NULL,
-  type = "b",
-  splines_control = splines.control()
-)
+nfcm_nll(lambda, w, type = "b", splines_control = splines.control())
 
-nfcm_grad_nll(
-  x,
-  w1,
-  w2 = NULL,
-  P = NULL,
-  type = "b",
-  splines_control = splines.control()
-)
+nfcm_grad_nll(lambda, w, type = "b", splines_control = splines.control())
 
-nfcm_aic(
-  x,
-  w1,
-  w2 = NULL,
-  P = NULL,
-  type = "b",
-  splines_control = splines.control()
-)
+nfcm_aic(x, w, type = "b", splines_control = splines.control())
 
-nfcm_bic(
-  x,
-  w1,
-  w2 = NULL,
-  P = NULL,
-  type = "b",
-  splines_control = splines.control()
-)
+nfcm_bic(x, w, type = "b", splines_control = splines.control())
 }
 \arguments{
-\item{x}{vector spline coefficients (\eqn{\lambda} vectorized).}
+\item{lambda}{vector of spline coefficients (\eqn{\Lambda} vectorized).}
 
-\item{w1}{uniform(0,1) vector of observations, or \code{matrix}
-if \code{w2} is \code{NULL}.}
-
-\item{w2}{uniform(0,1) vector of observations, can be set to \code{NULL} (by default)
-if \code{w1} is a \code{matrix}.}
-
-\item{P}{the "P" matrix (see \code{\link{P}}), if \code{NULL} (by default) it is 
-computed when calling the function.}
+\item{w}{uniform(0,1) \eqn{n\times N} \code{matrix} of observations.}
 
 \item{type}{specify spline basis, either \code{"b"} (default), 
 \code{"c"}, \code{"i"} or \code{"m"};}
@@ -61,25 +26,20 @@ computed when calling the function.}
 \item{splines_control}{control (see \code{\link{splines.control}}).}
 }
 \value{
-The negative log-likelihood divided by \eqn{n}.
+The approximate negative log-likelihood divided by \eqn{n} and \eqn{N}.
 
-The gradient of the negative log-likelihood divided by \eqn{n}.
+The gradient of the approximate negative log-likelihood divided by \eqn{n} and \eqn{N}.
 
 Akaike information criterion
 
 Bayesian information criterion
 }
 \description{
-Compute the negative log-likelihood for a bivariate model. It is defined
-as \deqn{c(w_1,w_2) = [\psi'(w_1)]^T \lambda^T P \lambda \psi'(w_2),}
+Compute an upper bound of the negative log-likelihood for a bivariate model. 
+It is defined 
+as \deqn{\frac{1}{n}\frac{1}{N}\sum_{i=1}^n\sum_{j=1}^N\Phi^\top\Lambda \psi'(w_{ij}),}
 where \eqn{\psi'} is the first derivative of a spline basis \eqn{\psi},
-\eqn{\lambda} is a matrix of spline coefficients and \eqn{P} is 
-some convenient matrix (see \link{P}). The copula models
-positive quadrant dependent variables. If one has \eqn{N}-dimensional
-variable, the variable is transformed to a 2-dimensional matrix (see 'Details').
-}
-\details{
-If one inputs a matrix of \eqn{w_{i,1},\dots,w_{i,N}, i=1,\dots,n,} data points
-throught \code{w1}, the data is internally transformed to a 
-2 columns matrix. If \eqn{N} is odd, the last column is dropped.
+\eqn{\Lambda} is a matrix of spline coefficients and \eqn{\Phi} is 
+defined as \deqn{\int_0^1\psi(u)du.} It is assumed that the variables have a
+positive quadrant dependence.
 }
