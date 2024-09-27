@@ -11,9 +11,9 @@ nfcm_nll(lambda, w, type = "b", splines_control = splines.control())
 
 nfcm_grad_nll(lambda, w, type = "b", splines_control = splines.control())
 
-nfcm_aic(x, w, type = "b", splines_control = splines.control())
+nfcm_aic(lambda, w, type = "b", splines_control = splines.control())
 
-nfcm_bic(x, w, type = "b", splines_control = splines.control())
+nfcm_bic(lambda, w, type = "b", splines_control = splines.control())
 }
 \arguments{
 \item{lambda}{vector of spline coefficients (\eqn{\Lambda} vectorized).}

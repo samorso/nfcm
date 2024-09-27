@@ -10,7 +10,7 @@ splines.control(
   degree = 3L,
   intercept = FALSE,
   Boundary.knots = c(0, 1),
-  perdiodic = FALSE,
+  periodic = FALSE,
   derivs = 0L,
   integral = FALSE
 )
@@ -26,7 +26,11 @@ splines.control(
 
 \item{Boundary.knots}{boundary points at which to anchor the splines;}
 
-\item{derivs}{the order of the derivative the spline.}
+\item{periodic}{boolean;}
+
+\item{derivs}{the order of the derivative the spline;}
+
+\item{integral}{boolean.}
 }
 \description{
 Control for the spline basis, currently from

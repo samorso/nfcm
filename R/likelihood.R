@@ -5,23 +5,26 @@
 #' @param knots intenal breakpoints that define the splines;
 #' @param degree the degree of the piecewise polynomial;
 #' @param intercept boolean;
+#' @param periodic boolean;
 #' @param Boundary.knots boundary points at which to anchor the splines;
-#' @param derivs the order of the derivative the spline.
+#' @param derivs the order of the derivative the spline;
+#' @param integral boolean.
 #' @seealso \code{\link[splines2]{bSpline}}, \code{\link[splines2]{mSpline}},
 #' \code{\link[splines2]{cSpline}}, \code{\link[splines2]{iSpline}}
 #' @export
 splines.control <- function(df = NULL, knots = seq(.2,.8,by=.2), degree = 3L, 
                             intercept = FALSE, Boundary.knots = c(0,1),
-                            perdiodic = FALSE, derivs = 0L, integral = FALSE){
+                            periodic = FALSE, derivs = 0L, integral = FALSE){
   if(!is.null(df)) if(as.integer(df)<0) stop("'df' must be positive")
   if(min(knots)<0 || max(knots)>1) warning("'knots' defined outside (0,1)")
   if(as.integer(degree)<0) stop("'degree' must be positive")
   if(!is.logical(intercept)) stop("'intercept' must be a boolean")
-  if(!is.logical(perdiodic)) stop("'periodic' must be a boolean")
+  if(any(Boundary.knots>1) || any(Boundary.knots<0)) stop("'Boundary.knots' must be in (0,1)")
+  if(!is.logical(periodic)) stop("'periodic' must be a boolean")
   if(as.integer(derivs)<0) stop("'derivs' must be positive")
   if(!is.logical(integral)) stop("'integral' must be a boolean")
   
-  list(df=df, knots=knots, degree=degree, intercept=intercept, Boundary.knots=Boundary.knots, derivs=derivs)
+  list(df=df, knots=knots, degree=degree, intercept=intercept, Boundary.knots=Boundary.knots, periodic=periodic, derivs=derivs, integral=integral)
 }
 
 # --------------
@@ -42,6 +45,7 @@ splines.control <- function(df = NULL, knots = seq(.2,.8,by=.2), degree = 3L,
 #' \code{"c"}, \code{"i"} or \code{"m"};
 #' @param splines_control control (see \code{\link{splines.control}}).
 #' @return The approximate negative log-likelihood divided by \eqn{n} and \eqn{N}.
+#' @importFrom splines2 bSpline cSpline iSpline mSpline
 #' @export
 nfcm_nll <- function(lambda, w, type="b", splines_control=splines.control()){
   # lambda            - a square matrix (not symmetric) vectorized of spline coefficients
@@ -68,6 +72,7 @@ nfcm_nll <- function(lambda, w, type="b", splines_control=splines.control()){
   
   # Compute the tensor products
   splines_control$derivs <- 1L
+  n <- nrow(w)
   N <- ncol(w)
   tp_spline <- matrix(nrow = n, ncol = N)
   for(j in 1:N){
@@ -108,6 +113,7 @@ nfcm_grad_nll <- function(lambda, w, type="b",splines_control=splines.control())
   
   # Compute the tensor products
   splines_control$derivs <- 1L
+  n <- nrow(w)
   N <- ncol(w)
   A <- matrix(0, nrow = k, ncol = k)
   for(j in 1:N){
@@ -125,17 +131,17 @@ nfcm_grad_nll <- function(lambda, w, type="b",splines_control=splines.control())
 #' @rdname nfcm_nll
 #' @return Akaike information criterion
 #' @export
-nfcm_aic <- function(x,w,type="b",splines_control=splines.control()){
-  k <- length(x)
+nfcm_aic <- function(lambda, w, type="b", splines_control=splines.control()){
+  k <- length(lambda)
   n <- nrow(w)
-  nfcm_nll(x=x,w=w,type=type,splines_control=splines_control) + 2.0 * k / n
+  nfcm_nll(lambda=lambda,w=w,type=type,splines_control=splines_control) + 2.0 * k / n
 }
 
 #' @rdname nfcm_nll
 #' @return Bayesian information criterion
 #' @export
-nfcm_bic <- function(x,w,type="b",splines_control=splines.control()){
-  k <- length(x)
+nfcm_bic <- function(lambda, w, type="b", splines_control=splines.control()){
+  k <- length(lambda)
   n <- nrow(w)
-  nfcm_nll(x=x,w=w,type=type,splines_control=splines_control) + log(n) * k / n
+  nfcm_nll(lambda=lambda,w=w,type=type,splines_control=splines_control) + log(n) * k / n
 }

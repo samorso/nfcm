@@ -342,6 +342,7 @@ predict_u <- function(lambda,w,type="b",splines_control=splines.control(), metho
 # Integral of the spline basis
 # --------------
 # Approximation of the integral of \int_0^1 u\phi(u)du
+#' @importFrom stats integrate
 q_vec <- function(type = "b", splines_control = splines.control()){
   if(!type %in% c("b","c","i","m")) stop("Spline basis not supported")
   # splines.control 
