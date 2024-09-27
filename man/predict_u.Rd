@@ -5,7 +5,7 @@
 \title{Predict latent variable}
 \usage{
 predict_u(
-  x,
+  lambda,
   w,
   type = "b",
   splines_control = splines.control(),
@@ -13,7 +13,7 @@ predict_u(
 )
 }
 \arguments{
-\item{x}{vector spline coefficients (\eqn{\lambda} vectorized).}
+\item{lambda}{vector spline coefficients (\eqn{\Lambda} vectorized).}
 
 \item{w}{uniform(0,1) \code{matrix} of observations.}
 
@@ -25,7 +25,7 @@ predict_u(
 \item{method}{method to estimate the latent variable, either \code{"map"} (default) or \code{"blup"}.}
 }
 \value{
-Vector of estimates for \eqn{u}
+Estimates for \eqn{u}, return a vector if \code{method="map"} and a matrix if \code{method="blup"}.
 }
 \description{
 Estimate the latent variable \eqn{u}.
