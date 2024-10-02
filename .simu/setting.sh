@@ -1,0 +1,6 @@
+SPLINE=c
+MODEL=gumbel
+N=1000
+D=2
+PARAM1=3
+NPARAM1=alpha
